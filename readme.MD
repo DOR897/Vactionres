@@ -10,4 +10,4 @@ install wsl, the run the comand ``zsh`` in cmd.
 You need to clone the repository:``git clone https://github.com/DOR897/Vactionres.git``
 
 then go to the app name ``cd vactionres`` then ``cd backend``.
-run these 3 commands: ``docker build -t my-fa -f./nginx.Dockerfile`` and ``docker build -t my-fastapi-app .`` after an image was set run  ``docker run -p 8800:8800 my-fastapi-app`` and go to  "http://localhost:8000/docs" you can see the backend app.
+run these 3 commands: ``docker build -t my-fa -f./nginx.Dockerfile`` and ``docker build -t my-fastapi-app .`` after an image was set run  ``docker run -p 8800:8800 my-fastapi-app`` and go to  "http://localhost:8800/docs" you can see the backend app.
