@@ -13,8 +13,8 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
-def get_user(db: Session, email: str):
-    return db.query(User).filter(User.email == email).first()
+def get_user(db: Session, username_or_email: str):
+    return db.query(User).filter(User.email == username_or_email).first()
 
 def create_user(db: Session, user: UserCreate):
     hashed_password = hash_password(user.password)
