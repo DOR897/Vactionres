@@ -1,6 +1,6 @@
 import requests
 import os
-from fsstapi import HTTPException
+from fastapi import HTTPException
 from datetime import date
 import httpx
 from dotenv import load_dotenv
