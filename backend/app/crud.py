@@ -16,6 +16,7 @@ def verify_password(plain_password, hashed_password):
 def get_user(db: Session, username_or_email: str):
     return db.query(User).filter(User.email == username_or_email).first()
 
+
 def create_user(db: Session, user: UserCreate):
     hashed_password = hash_password(user.password)
     db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
