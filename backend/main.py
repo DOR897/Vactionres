@@ -2,10 +2,12 @@ from fastapi import FastAPI, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from app.services import search_flights, search_hotels, get_weather
 from app.database import SessionLocal, engine 
-from typing import Optional, List
 from app import models, schemas, services ,crud
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
+from app.database import engine, get_db
+from datetime import datetime
+from typing import Optional
 
 
 # Create the database tables
@@ -16,19 +18,12 @@ app = FastAPI()
 # Allow frontend to access backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8080"],  # or ["*"] for all
+    allow_origins=["*"],  # or ["*"] for all
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Dependency to get the database session
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # User Endpoints
@@ -76,7 +71,10 @@ def search_hotels_endpoint(
     currency: str = "USD"
 ):
     """API endpoint to search for hotels"""
-    hotels = search_hotels(destination, check_in, check_out, adults, currency)
+    # SerpAPI expects MM/DD/YYYY, not ISO
+    ci = datetime.strptime(check_in,  "%Y-%m-%d").strftime("%m/%d/%Y")
+    co = datetime.strptime(check_out, "%Y-%m-%d").strftime("%m/%d/%Y")
+    hotels = services.search_hotels(destination, ci, co, adults, currency)
     return {"hotels": hotels}
 
 # Flight Endpoints
@@ -116,27 +114,42 @@ async def search_flights_endpoint(
         raise HTTPException(status_code=500, detail=f"Unexpected error occurred: {str(e)}")
 
 
-# Booking Endpoints
-@app.post("/bookings/flights/")
-def book_flight(user_id: int, flight_id: int, db: Session = Depends(get_db)):
+
+
+# Booking endpoints
+@app.post("/bookings/flights/",response_model=schemas.Booking)
+def book_flight(
+    user_id: int   = Query(..., description="ID of the user"),
+    flight_id: int = Query(..., description="ID of an existing flight"),
+    db: Session    = Depends(get_db),
+):
     return services.book_flight(db, user_id, flight_id)
 
 
-@app.post("/bookings/hotels/")
-def book_hotel(user_id: int, hotel_id: int, db: Session = Depends(get_db)):
+@app.post("/bookings/hotels/",response_model=schemas.Booking)
+def book_hotel(
+    user_id: int = Query(..., description="ID of the user"),
+    hotel_id: int  = Query(..., description="ID of an existing hotel"),
+    db: Session    = Depends(get_db),
+):
     return services.book_hotel(db, user_id, hotel_id)
 
 @app.delete("/bookings/flights/{booking_id}")
 def delete_flight_booking(booking_id: int, db: Session = Depends(get_db)):
-    return services.delete_flight_booking(db, booking_id)
+    return crud.delete_flight_booking(db, booking_id)
 
 @app.delete("/bookings/hotels/{booking_id}")
 def delete_hotel_booking(booking_id: int, db: Session = Depends(get_db)):
-    return services.delete_hotel_booking(db, booking_id)
+    return crud.delete_hotel_booking(db, booking_id)
 
 @app.get("/bookings/{user_id}", response_model=list[schemas.Booking])
-def get_user_bookings(user_id: int, skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return crud.get_bookings(db=db, user_id=user_id, skip=skip, limit=limit)
+def get_user_bookings(
+    user_id: int,
+    skip: int = 0,
+    limit: int = 10,
+    db: Session = Depends(get_db)
+): 
+    return crud.get_bookings(db, user_id, skip, limit)
 
 
 # Weather Endpoint

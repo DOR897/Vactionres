@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app import models, schemas, crud
 from app.crud import delete_flight_booking as crud_delete_flight_booking
 from app.crud import delete_hotel_booking as crud_delete_hotel_booking
+from datetime import datetime
 
 
 
@@ -22,6 +23,17 @@ WEATHER_API_KEY = os.getenv("WEATHER_API_KEY")
 SERPAPI_API_URL = "https://serpapi.com/search.json"
 WEATHER_API_URL = "http://api.openweathermap.org/data/2.5/forecast"
 
+def _normalize_date(s: str) -> str:
+    """
+    Take various common user‐entered formats (e.g. "2025-06-22", "22/06/2025", "06/22/2025")
+    and return exactly "YYYY-MM-DD", or throw a 400 if we can't parse it.
+    """
+    for fmt in ("%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%d\\%m\\%Y"):
+        try:
+            return datetime.strptime(s, fmt).strftime("%Y-%m-%d")
+        except ValueError:
+            continue
+    raise HTTPException(400, detail=f"Invalid date format: {s!r}. Use YYYY-MM-DD.")
 
 
 def search_flights(origin: str, destination: str, departure_date: str, return_date: str = None):
@@ -113,35 +125,56 @@ def search_flights(origin: str, destination: str, departure_date: str, return_da
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error occurred: {str(e)}")
 
-def search_hotels(query: str, check_in: str, check_out: str, adults: int = 2, currency: str = "USD"):
-    """Fetch hotels from SerpAPI"""
+def search_hotels(
+    query: str,
+    check_in: str,
+    check_out: str,
+    adults: int = 2,
+    currency: str = "USD"
+):
+    if not SERPAPI_API_KEY:
+        raise HTTPException(500, detail="SerpAPI_API_KEY is missing.")
+
+    # 1) normalize user input into ISO yyyy-mm-dd
+    ci = _normalize_date(check_in)
+    co = _normalize_date(check_out)
+
     params = {
         "engine": "google_hotels",
         "q": query,
-        "check_in_date": check_in,
-        "check_out_date": check_out,
+        "check_in_date": ci,
+        "check_out_date": co,
         "adults": adults,
         "currency": currency,
         "gl": "us",
         "hl": "en",
-        "api_key": SERPAPI_API_KEY
+        "api_key": SERPAPI_API_KEY,
     }
-    
+
     try:
-        response = httpx.get(SERPAPI_API_URL, params=params)
-        response.raise_for_status()
-        data = response.json()
+        resp = httpx.get(SERPAPI_API_URL, params=params, timeout=10.0)
+        if resp.status_code != 200:
+            # bubble up SerpAPI’s own error, so you can debug
+            raise HTTPException(
+                status_code=resp.status_code,
+                detail=f"SerpAPI hotels error ({resp.status_code}): {resp.text}"
+            )
+        data = resp.json()
         return data.get("properties", [])
-    except httpx.HTTPStatusError as e:
-        raise HTTPException(status_code=e.response.status_code, detail=f"Error fetching hotels: {e}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error: {str(e)}")
+    except httpx.RequestError as e:
+        raise HTTPException(502, detail=f"Network error contacting SerpAPI: {e}")
+    except ValueError:
+        raise HTTPException(502, detail="SerpAPI returned invalid JSON.")
     
 def book_flight(db: Session, user_id: int, flight_id: int):
     """
     Books a flight for the user.
     """
-    booking_data = schemas.BookingCreate(user_id=user_id, flight_id=flight_id)
+    booking_data = schemas.BookingCreate(
+    user_id=user_id,
+    flight_id=flight_id,
+    hotel_id=None
+)
     return crud.create_booking(db, booking_data)
 
 
@@ -149,7 +182,11 @@ def book_hotel(db: Session, user_id: int, hotel_id: int):
     """
     Books a hotel for the user.
     """
-    booking_data = schemas.BookingCreate(user_id=user_id, hotel_id=hotel_id)
+    booking_data = schemas.BookingCreate(
+    user_id=user_id,
+    flight_id=None,
+    hotel_id=hotel_id
+)
     return crud.create_booking(db, booking_data)
 
 

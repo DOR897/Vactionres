@@ -1,30 +1,37 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session ,joinedload
 from passlib.context import CryptContext
 from app.models import User, Hotel, Flight, Booking
 from app.schemas import UserCreate, HotelCreate, FlightCreate, BookingCreate , HotelUpdate, FlightUpdate
 from datetime import date
 
-# User 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
-
-def verify_password(plain_password, hashed_password):
-    return pwd_context.verify(plain_password, hashed_password)
-
-def get_user(db: Session, username_or_email: str):
-    return db.query(User).filter(User.email == username_or_email).first()
-
+def get_user(db: Session, username: str):
+    return db.query(User).filter(User.username == username).first()
 
 def create_user(db: Session, user: UserCreate):
-    hashed_password = hash_password(user.password)
-    db_user = User(username=user.username, email=user.email, hashed_password=hashed_password)
+    # hash with bcrypt
+    hashed_pw = pwd_context.hash(user.password)
+    db_user = User(
+        username=user.username,
+        email=user.email,
+        hashed_password=hashed_pw,
+        is_active=True
+    )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
     return db_user
 
+# replace your old verify_password:
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    # now uses the same context
+    return pwd_context.verify(plain_password, hashed_password)
+
+
+
+def hash_password(password: str) -> str:
+    return pwd_context.hash(password)
 
 
 
@@ -33,7 +40,8 @@ def get_hotels(db: Session, skip: int = 0, limit: int = 10):
     return db.query(Hotel).offset(skip).limit(limit).all()
 
 def create_hotel(db: Session, hotel: HotelCreate):
-    db_hotel = Hotel(**hotel.dict())
+    data = hotel.dict(exclude_none=True)
+    db_hotel = Hotel(**data)
     db.add(db_hotel)
     db.commit()
     db.refresh(db_hotel)
@@ -82,21 +90,44 @@ def create_booking(db: Session, booking: BookingCreate):
     return db_booking
 
 def get_bookings(db: Session, user_id: int, skip: int = 0, limit: int = 10):
-    return db.query(Booking).filter(Booking.user_id == user_id).offset(skip).limit(limit).all()
+    """
+    Return list of Booking ORM objects with .flight and .hotel populated.
+    FastAPI/Pydantic will automatically convert them according to your Booking schema.
+    """
+    return (
+        db.query(Booking)
+          .options(
+            joinedload(Booking.flight),
+            joinedload(Booking.hotel),
+          )
+          .filter(Booking.user_id == user_id)
+          .offset(skip)
+          .limit(limit)
+          .all()
+    )
 
 def delete_flight_booking(db: Session, booking_id: int):
-    booking = db.query(Booking).filter(Booking.id == booking_id, Booking.flight_id.isnot(None)).first()
+    booking = (
+        db.query(Booking)
+          .filter(Booking.id == booking_id,
+                  Booking.flight_id != None)
+          .first()
+    )
     if booking:
         db.delete(booking)
         db.commit()
-        return {"message": "Flight booking deleted successfully"}
-    return {"error": "Flight booking not found"}
+        return {"message": "Flight booking deleted"}
+    return {"message": "Booking not found"}
 
-# Delete Hotel Booking
 def delete_hotel_booking(db: Session, booking_id: int):
-    booking = db.query(Booking).filter(Booking.id == booking_id, Booking.hotel_id.isnot(None)).first()
+    booking = (
+        db.query(Booking)
+          .filter(Booking.id == booking_id,
+                  Booking.hotel_id != None)
+          .first()
+    )
     if booking:
         db.delete(booking)
         db.commit()
-        return {"message": "Hotel booking deleted successfully"}
-    return {"error": "Hotel booking not found"}
+        return {"message": "Hotel booking deleted"}
+    return {"message": "Booking not found"}

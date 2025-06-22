@@ -1,6 +1,6 @@
-import { useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { loginUser, registerUser } from '../utils/api';
+import { registerUser, loginUser } from '../utils/api';
 
 const LoginRegisterPage = ({ setUser }) => {
   const [email, setEmail] = useState('');
@@ -16,14 +16,20 @@ const LoginRegisterPage = ({ setUser }) => {
     try {
       let userData;
       if (isRegistering) {
-        userData = await registerUser({ email, password });
+        // must supply username, email, password
+        userData = await registerUser({
+          username: email,
+          email,
+          password,
+        });
       } else {
+        // login expects form‐encoded username/password
         userData = await loginUser({ email, password });
       }
 
       const userObj = {
         id: userData.user_id || userData.id,
-        email: userData.email
+        email: userData.email,
       };
       localStorage.setItem('user', JSON.stringify(userObj));
       setUser(userObj);
@@ -36,27 +42,23 @@ const LoginRegisterPage = ({ setUser }) => {
   return (
     <div className="container mt-5">
       <h2 className="text-center mb-4">{isRegistering ? 'Register' : 'Login'}</h2>
-      <form onSubmit={handleSubmit} className="mx-auto" style={{ maxWidth: '400px' }}>
-        <div className="mb-3">
-          <input
-            type="email"
-            className="form-control"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-        </div>
-        <div className="mb-3">
-          <input
-            type="password"
-            className="form-control"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </div>
+      <form onSubmit={handleSubmit} style={{ maxWidth: '400px' }} className="mx-auto">
+        <input
+          type="email"
+          className="form-control mb-3"
+          placeholder="Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+        <input
+          type="password"
+          className="form-control mb-3"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
         <button type="submit" className="btn btn-primary w-100">
           {isRegistering ? 'Register' : 'Login'}
         </button>
