@@ -1,3 +1,20 @@
+# VacationRes
+
+## Running with Docker Compose
+
+To run the full stack (frontend, backend, and database) using Docker Compose:
+
+```sh
+docker compose up --build
+```
+
+- **Frontend:** [http://localhost:8080](http://localhost:8080)
+- **Backend API & Docs:** [http://localhost:8800/docs](http://localhost:8800/docs)
+
+The frontend will be served on port 8080, and the backend (FastAPI) including the interactive API docs will be on port 8800.
+
+---
+
 # Vactionres
 
 A full-stack travel app where you can:
