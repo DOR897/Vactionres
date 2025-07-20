@@ -24,13 +24,11 @@ a:hover {
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background-color: #f5f7fa;
-  margin: 0;
+  background: linear-gradient(135deg, #4a5568 0%, #2d3748 100%);
+  background-attachment: fixed;
 }
 
 h1 {
@@ -74,3 +72,35 @@ button:focus-visible {
   max-width: 960px;
   margin: auto;
 }
+
+/* Date picker styling to ensure visibility */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  background-color: white;
+  border-radius: 4px;
+  padding: 2px;
+}
+
+input[type="date"]::-webkit-datetime-edit {
+  color: #2d3748;
+}
+
+input[type="date"]::-webkit-datetime-edit-fields-wrapper {
+  color: #2d3748;
+}
+
+input[type="date"]::-webkit-datetime-edit-text {
+  color: #2d3748;
+}
+
+input[type="date"]::-webkit-datetime-edit-month-field {
+  color: #2d3748;
+}
+
+input[type="date"]::-webkit-datetime-edit-day-field {
+  color: #2d3748;
+}
+
+input[type="date"]::-webkit-datetime-edit-year-field {
+  color: #2d3748;
+}
+

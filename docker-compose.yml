@@ -3,6 +3,21 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15
+    container_name: db
+    restart: always
+    environment:
+      POSTGRES_USER: vactionres
+      POSTGRES_PASSWORD: vactionrespassword
+      POSTGRES_DB: vactionresdb
+    ports:
+      - "5432:5432"
+    networks:
+      - vactionres-net
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
   backend:
     build: ./backend
     container_name: backend
@@ -10,6 +25,10 @@ services:
       - "8800:8800"
     networks:
       - vactionres-net
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgresql+psycopg2://vactionres:vactionrespassword@db:5432/vactionresdb
 
   frontend:
     build: ./vactionres-frontend
@@ -24,3 +43,6 @@ services:
 networks:
   vactionres-net:
     driver: bridge
+
+volumes:
+  db_data:

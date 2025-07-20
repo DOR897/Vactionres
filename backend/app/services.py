@@ -118,8 +118,6 @@ def search_flights(origin: str, destination: str, departure_date: str, return_da
     except requests.RequestException as e:
         raise HTTPException(status_code=500, detail=f"Error fetching flight data: {str(e)}")
 
-    except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=500, detail=f"Request Error: {str(e)}")
     except KeyError as e:
         raise HTTPException(status_code=500, detail=f"Data Parsing Error: Missing expected data field {str(e)}")
     except Exception as e:
@@ -166,7 +164,7 @@ def search_hotels(
     except ValueError:
         raise HTTPException(502, detail="SerpAPI returned invalid JSON.")
     
-def book_flight(db: Session, user_id: int, flight_id: int):
+def book_flight(db: Session, user_id: str, flight_id: int):
     """
     Books a flight for the user.
     """
@@ -178,7 +176,7 @@ def book_flight(db: Session, user_id: int, flight_id: int):
     return crud.create_booking(db, booking_data)
 
 
-def book_hotel(db: Session, user_id: int, hotel_id: int):
+def book_hotel(db: Session, user_id: str, hotel_id: int):
     """
     Books a hotel for the user.
     """

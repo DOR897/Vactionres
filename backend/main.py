@@ -18,7 +18,7 @@ app = FastAPI()
 # Allow frontend to access backend
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # or ["*"] for all
+    allow_origins=["http://localhost:8080"],  # or ["*"] for all
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -42,6 +42,10 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @app.post("/users/", response_model=schemas.User)
 def create_user(user: schemas.UserCreate, db: Session = Depends(get_db)):
     return crud.create_user(db=db, user=user)
+
+@app.post("/users/google/", response_model=schemas.User)
+def create_google_user(user: schemas.GoogleUserCreate, db: Session = Depends(get_db)):
+    return crud.create_google_user(db=db, user=user)
 
 
 # Hotel Endpoints
@@ -70,13 +74,14 @@ def search_hotels_endpoint(
     adults: int = 2,
     currency: str = "USD"
 ):
-    """API endpoint to search for hotels"""
-    # SerpAPI expects MM/DD/YYYY, not ISO
-    ci = datetime.strptime(check_in,  "%Y-%m-%d").strftime("%m/%d/%Y")
-    co = datetime.strptime(check_out, "%Y-%m-%d").strftime("%m/%d/%Y")
-    hotels = services.search_hotels(destination, ci, co, adults, currency)
-    return {"hotels": hotels}
-
+    try:
+        props = services.search_hotels(destination, check_in, check_out, adults, currency)
+    except HTTPException as e:
+        # if SerpAPI says “bad date format” or “no hotels”, just return an empty array
+        if e.status_code == 400:
+            return {"hotels": []}
+        raise
+    return {"hotels": props}
 # Flight Endpoints
 @app.post("/flights/", response_model=schemas.Flight)
 def create_flight(flight: schemas.FlightCreate, db: Session = Depends(get_db)):
@@ -119,7 +124,7 @@ async def search_flights_endpoint(
 # Booking endpoints
 @app.post("/bookings/flights/",response_model=schemas.Booking)
 def book_flight(
-    user_id: int   = Query(..., description="ID of the user"),
+    user_id: str   = Query(..., description="ID of the user"),
     flight_id: int = Query(..., description="ID of an existing flight"),
     db: Session    = Depends(get_db),
 ):
@@ -128,7 +133,7 @@ def book_flight(
 
 @app.post("/bookings/hotels/",response_model=schemas.Booking)
 def book_hotel(
-    user_id: int = Query(..., description="ID of the user"),
+    user_id: str = Query(..., description="ID of the user"),
     hotel_id: int  = Query(..., description="ID of an existing hotel"),
     db: Session    = Depends(get_db),
 ):
@@ -144,7 +149,7 @@ def delete_hotel_booking(booking_id: int, db: Session = Depends(get_db)):
 
 @app.get("/bookings/{user_id}", response_model=list[schemas.Booking])
 def get_user_bookings(
-    user_id: int,
+    user_id: str,
     skip: int = 0,
     limit: int = 10,
     db: Session = Depends(get_db)

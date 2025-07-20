@@ -1,4 +1,3 @@
-# Stage 1: Build with Vite
 FROM node:20 AS builder
 
 WORKDIR /app

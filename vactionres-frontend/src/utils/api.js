@@ -33,6 +33,19 @@ export const loginUser = async (credentials) => {
   return await res.json();
 };
 
+export const createGoogleUser = async (userData) => {
+  const res = await fetch(`${BASE_URL}/users/google/`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(userData),
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Google user creation failed: ${err}`);
+  }
+  return await res.json();
+};
+
 // — Bookings —
 
 // This is the one that BookingsPage.jsx imports:

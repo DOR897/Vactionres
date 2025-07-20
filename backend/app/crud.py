@@ -1,8 +1,9 @@
 from sqlalchemy.orm import Session ,joinedload
 from passlib.context import CryptContext
 from app.models import User, Hotel, Flight, Booking
-from app.schemas import UserCreate, HotelCreate, FlightCreate, BookingCreate , HotelUpdate, FlightUpdate
+from app.schemas import UserCreate, GoogleUserCreate, HotelCreate, FlightCreate, BookingCreate , HotelUpdate, FlightUpdate
 from datetime import date
+import uuid
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -12,10 +13,33 @@ def get_user(db: Session, username: str):
 def create_user(db: Session, user: UserCreate):
     # hash with bcrypt
     hashed_pw = pwd_context.hash(user.password)
+    
+    # Generate a unique ID for regular users (you can use UUID or a simple counter)
+    user_id = str(uuid.uuid4())
+    
     db_user = User(
+        id=user_id,
         username=user.username,
         email=user.email,
         hashed_password=hashed_pw,
+        is_active=True
+    )
+    db.add(db_user)
+    db.commit()
+    db.refresh(db_user)
+    return db_user
+
+def create_google_user(db: Session, user: GoogleUserCreate):
+    # Check if user already exists
+    existing_user = db.query(User).filter(User.id == user.id).first()
+    if existing_user:
+        return existing_user
+    
+    # Create new Google user
+    db_user = User(
+        id=user.id,
+        username=user.name,
+        email=user.email,
         is_active=True
     )
     db.add(db_user)
@@ -89,7 +113,7 @@ def create_booking(db: Session, booking: BookingCreate):
     db.refresh(db_booking)
     return db_booking
 
-def get_bookings(db: Session, user_id: int, skip: int = 0, limit: int = 10):
+def get_bookings(db: Session, user_id: str, skip: int = 0, limit: int = 10):
     """
     Return list of Booking ORM objects with .flight and .hotel populated.
     FastAPI/Pydantic will automatically convert them according to your Booking schema.

@@ -10,8 +10,13 @@ class UserCreate(BaseModel):
     email: str
     password: str
 
+class GoogleUserCreate(BaseModel):
+    id: str  # Google user ID
+    email: str
+    name: str
+
 class User(BaseModel):
-    id: int
+    id: str  # Changed to str to accommodate Google user IDs
     username: str
     email: str
     is_active: bool
@@ -113,18 +118,18 @@ class Flight(FlightBase):
 # --- Booking Schemas ---
 
 class BookingBase(BaseModel):
-    user_id: int
+    user_id: str
     hotel_id: Optional[int] = None
     flight_id: Optional[int] = None
 
 class BookingCreate(BookingBase):
-     user_id: int
+     user_id: str
      flight_id: Optional[int] = None
      hotel_id:  Optional[int] = None
 
 class Booking(BaseModel):
     id: int
-    user_id: int
+    user_id: str
     flight_id: Optional[int] 
     hotel_id:  Optional[int] 
     booking_date: date

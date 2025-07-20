@@ -9,10 +9,10 @@ from datetime import date
 class User(Base):
     __tablename__ = "users"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(String(128), primary_key=True, index=True)
     username = Column(String, unique=True, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    hashed_password = Column(String, nullable=True)  # Nullable for Google users
     is_active = Column(Boolean, default=True)
 
     # Relationships
@@ -60,7 +60,7 @@ class Booking(Base):
     __tablename__ = "bookings"
 
     id           = Column(Integer, primary_key=True, index=True)
-    user_id      = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id      = Column(String(128), ForeignKey("users.id"), nullable=False)
     flight_id    = Column(Integer, ForeignKey("flights.id"), nullable=True)
     hotel_id     = Column(Integer, ForeignKey("hotels.id"), nullable=True)
     booking_date = Column(Date, default=date.today)
