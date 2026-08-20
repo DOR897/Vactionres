@@ -44,9 +44,9 @@ docker run -p 8800:8800 my-fastapi-app
 ```bash
 cd vactionres-frontend
 docker build -t vactionres-frontend .
-docker run -p 5173:5173 vactionres-frontend
+docker run -p 8080:8080 vactionres-frontend
 ```
-- The app will be available at [http://localhost:5173](http://localhost:5173)
+- The app will be available at [http://localhost:8080](http://localhost:8080)
 
 #### Option B: Without Docker
 ```bash
@@ -71,7 +71,7 @@ docker-compose up --build
 ```bash
 cd vactionres-frontend
 docker build -t vactionres-frontend .
-docker run -p 5173:5173 vactionres-frontend
+docker run -p 8080:8080 vactionres-frontend
 ```
 
 ---
